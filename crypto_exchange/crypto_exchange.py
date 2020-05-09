@@ -11,7 +11,10 @@ TIMEOUT = 1000
 
 
 class MarketAPI:
-    def __http_get(self, url, param={}):
+    def __http_get(self, url, param=None):
+        if param is None:
+            param = {}
+
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
         data = urllib.parse.urlencode(param)
         try:
@@ -68,28 +71,31 @@ class UserAPI:
         self.__api_key = api_key
         self.__secret_key = secret_key
 
-    def __user_signature(self, param={}):
-        epoch_milli = "%d" % int(round(time.time() * 1000))
+    def __user_signature(self, param=None):
+        if param is None:
+            param = {}
+
+        epoch_milli = str(round(time.time() * 1000))
+        param["api_key"] = self.__api_key
+        param["time"] = epoch_milli
+
         sorted_params = sorted(param.items(), key=lambda d: d[0], reverse=False)
 
         # A joint string is required to be in this format
         joint_string = (
-            "api_key"
-            + self.__api_key
-            + "".join(map(lambda x: str(x[0]) + str(x[1] or ""), sorted_params))
-            + "time"
-            + epoch_milli
+            "".join(map(lambda x: str(x[0]) + str(x[1] or ""), sorted_params))
             + self.__secret_key
         )
         sign = hashlib.sha256(joint_string.encode("utf-8")).hexdigest()
 
-        param["api_key"] = self.__api_key
-        param["time"] = epoch_milli
         param["sign"] = sign
 
         return param
 
-    def __http_post(self, url, param={}):
+    def __http_post(self, url, param=None):
+        if param is None:
+            param = {}
+
         headers = {
             "Content-type": "application/x-www-form-urlencoded",
         }
@@ -111,17 +117,14 @@ class UserAPI:
         """ Get order detail
         """
         url = API_URL + "/v1/showOrder"
-        param = {}
-        param["symbol"] = symbol
-        param["order_id"] = order_id
+        param = {"symbol": symbol, "order_id": order_id}
         return self.__http_post(url=url, param=self.__user_signature(param))
 
     def cancel_all_oder(self, symbol):
         """ Cancel all orders in a particular market
         """
         url = API_URL + "/v1/cancelAllOrders"
-        param = {}
-        param["symbol"] = symbol
+        param = {"symbol": symbol}
         return self.__http_post(url=url, param=self.__user_signature(param))
 
     def cancel_order(self, symbol, order_id):
@@ -129,16 +132,14 @@ class UserAPI:
         """
         url = API_URL + "/v1/orders/cancel"
         param = {}
-        param["symbol"] = symbol
-        param["order_id"] = order_id
+        param = {"symbol": symbol, "order_id": order_id}
         return self.__http_post(url=url, param=self.__user_signature(param))
 
     def get_all_orders(self, symbol):
         """ List all orders in a particular market
         """
         url = API_URL + "/v1/allOrders"
-        param = {}
-        param["symbol"] = symbol
+        param = {"symbol": symbol}
         return self.__http_post(url=url, param=self.__user_signature(param))
 
     def get_trades(
@@ -148,8 +149,7 @@ class UserAPI:
         """
         url = API_URL + "/v1/myTrades"
         pattern = "[0-9]{4}-[0-1][0-9]-[0-3][0-9] [0-2][0-9]:[0-5][0-9]:[0-5][0-9]"
-        param = {}
-        param["symbol"] = symbol
+        param = {"symbol": symbol}
 
         if start_date is not None:
             if not re.match(pattern, start_date):
@@ -170,8 +170,7 @@ class UserAPI:
         """ List all open orders in a particular market
         """
         url = API_URL + "/v1/openOrders"
-        param = {}
-        param["symbol"] = symbol
+        param = {"symbol": symbol}
 
         if page is not None:
             param["page"] = page
@@ -179,3 +178,17 @@ class UserAPI:
             param["pageSize"] = page_size
 
         return self.__http_post(url=url, param=self.__user_signature(param))
+
+    def create_order(self, symbol, side, price, volume):
+        """ Create an order
+        """
+        url = API_URL + "/v1/order"
+        params = {
+            "price": price,
+            "side": side,
+            "symbol": symbol,
+            "type": 1,
+            "volume": volume,
+        }
+
+        return self.__http_post(url=url, param=self.__user_signature(params))
