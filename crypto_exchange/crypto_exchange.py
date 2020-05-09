@@ -179,16 +179,37 @@ class UserAPI:
 
         return self.__http_post(url=url, param=self.__user_signature(param))
 
-    def create_order(self, symbol, side, price, volume):
-        """ Create an order
+    def create_limit_order(
+        self, symbol, side, price, volume, fee_is_user_exchange_coin=None
+    ):
+        """ Create a limit order
         """
         url = API_URL + "/v1/order"
-        params = {
+        param = {
             "price": price,
-            "side": side,
+            "side": str(side).upper(),
             "symbol": symbol,
             "type": 1,
             "volume": volume,
         }
 
-        return self.__http_post(url=url, param=self.__user_signature(params))
+        if fee_is_user_exchange_coin is not None:
+            param["fee_is_user_exchange_coin"] = fee_is_user_exchange_coin
+
+        return self.__http_post(url=url, param=self.__user_signature(param))
+
+    def create_market_order(self, symbol, side, volume, fee_is_user_exchange_coin=None):
+        """ Create a market order
+        """
+        url = API_URL + "/v1/order"
+        param = {
+            "side": str(side).upper(),
+            "symbol": symbol,
+            "type": 2,
+            "volume": volume,
+        }
+
+        if fee_is_user_exchange_coin is not None:
+            param["fee_is_user_exchange_coin"] = fee_is_user_exchange_coin
+
+        return self.__http_post(url=url, param=self.__user_signature(param))
