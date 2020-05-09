@@ -1,1 +1,5 @@
 __pycache__
+/poetry.toml
+
+.DS_Store
+.python-version
